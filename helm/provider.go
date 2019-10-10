@@ -141,6 +141,12 @@ func Provider() terraform.ResourceProvider {
 				Description: "Kubernetes configuration.",
 				Elem:        kubernetesResource(),
 			},
+			"keepalive": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     0,
+				Description: "Number of seconds between keepalive GetVersion calls, 0 for disabled (default)",
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"helm_release":    resourceRelease(),
@@ -532,7 +538,22 @@ func (m *Meta) buildTunnel(d *schema.ResourceData) error {
 
 	m.Settings.TillerHost = fmt.Sprintf("127.0.0.1:%d", m.Tunnel.Local)
 	debug("Created tunnel using local port: '%d'\n", m.Tunnel.Local)
+
+	keepalive := d.Get("keepalive").(int)
+	if keepalive != 0 {
+		go m.helmKeepalive(keepalive)
+	}
+
 	return nil
+}
+
+func (m *Meta) helmKeepalive(delay int) {
+	client := m.buildHelmClient()
+	for {
+		version, _ := client.GetVersion()
+		debug("Helm keepalive version call %s", version)
+		time.Sleep(time.Duration(delay) * time.Second)
+	}
 }
 
 func (m *Meta) buildHelmClient() helm.Interface {
