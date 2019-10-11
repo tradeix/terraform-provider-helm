@@ -144,7 +144,7 @@ func Provider() terraform.ResourceProvider {
 			"keepalive": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     0,
+				Default:     30,
 				Description: "Number of seconds between keepalive GetVersion calls, 0 for disabled (default)",
 			},
 		},
